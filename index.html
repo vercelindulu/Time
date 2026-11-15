@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Timer</title>
+<style>
+:root{--bg:#101010;--fg:#f2f2f2;--mut:#8a8a8a;--card:#1c1c1c;--line:#262626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#fafafa;--fg:#161616;--mut:#777;--card:#eee;--line:#ddd;color-scheme:light}}
+:root[data-theme="dark"]{--bg:#101010;--fg:#f2f2f2;--mut:#8a8a8a;--card:#1c1c1c;--line:#262626}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.app{max-width:520px;margin:0 auto;padding:0 16px 40px}
+.big{font-size:64px;font-weight:300;text-align:center;margin:36px 0 4px;font-variant-numeric:tabular-nums}
+.sess{text-align:center;color:var(--mut);height:24px;margin-bottom:18px}
+nav{display:flex;border-bottom:1px solid var(--line);margin-bottom:8px}
+nav button{flex:1;background:none;border:0;color:var(--mut);font-size:16px;padding:14px 0;border-bottom:3px solid transparent}
+nav button.on{color:var(--fg);border-color:var(--fg)}
+.row{display:flex;align-items:center;gap:14px;padding:14px 4px}
+.play{width:46px;height:46px;border-radius:50%;border:0;flex:none;display:grid;place-items:center;color:#111}
+.play svg{width:20px;height:20px;fill:currentColor}
+.name{flex:1;font-size:19px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t{font-size:19px;font-variant-numeric:tabular-nums}
+.row.run .name{font-weight:600}
+.btn{background:var(--card);color:var(--fg);border:0;border-radius:10px;padding:10px 14px;font-size:16px}
+input[type=text]{flex:1;min-width:0;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:16px}
+input[type=color]{width:36px;height:36px;border:0;background:none;padding:0}
+.x{background:none;border:0;color:#e5484d;font-size:22px;padding:4px 8px}
+.bars{display:flex;align-items:flex-end;gap:8px;height:160px;margin:16px 0 6px}
+.bar{flex:1;display:flex;flex-direction:column-reverse;border-radius:6px;overflow:hidden;min-height:2px;background:var(--card)}
+.lbls{display:flex;gap:8px;color:var(--mut);font-size:12px;text-align:center}.lbls div{flex:1}
+h3{margin:22px 0 4px;font-size:15px;color:var(--mut);font-weight:500}
+.chk{width:22px;height:22px;accent-color:#4fd1c5}
+.done{text-decoration:line-through;color:var(--mut)}
+.add{display:flex;gap:8px;margin:12px 0}
+</style></head><body><div class="app">
+<div class="big" id="total">0:00:00</div><div class="sess" id="sess"></div>
+<nav id="nav"></nav><div id="view"></div></div>
+<script>
+const COLORS=['#4dd0e1','#9fb0c0','#fff176','#80cbc4','#26a69a'];
+let S=null;
+try{S=JSON.parse(localStorage.getItem('st1'))}catch(e){}
+if(!S)S={subs:[{id:1,name:'Fisika',color:COLORS[0]},{id:2,name:'Matematika Olimpiade',color:COLORS[2]},{id:3,name:'Ekonomi Olimpiade',color:COLORS[1]},{id:4,name:'Bahasa Asing',color:COLORS[4]}],log:{},run:null,books:[],tasks:[],nid:10};
+let tab='timer',edit=false;
+const save=()=>{try{localStorage.setItem('st1',JSON.stringify(S))}catch(e){}};
+const day=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmt=s=>Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+const live=()=>S.run?Math.floor((Date.now()-S.run.start)/1000):0;
+const sec=(id,d=day())=>((S.log[d]||{})[id]||0)+(S.run&&S.run.id==id&&d==day()?live():0);
+const tot=(d=day())=>S.subs.reduce((a,s)=>a+sec(s.id,d),0);
+function stop(){if(!S.run)return;const d=day(),l=S.log[d]=S.log[d]||{};l[S.run.id]=(l[S.run.id]||0)+live();S.run=null}
+function toggle(id){const was=S.run&&S.run.id==id;stop();if(!was)S.run={id,start:Date.now()};save();draw()}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PLAY='<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',PAUSE='<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+function head(){document.getElementById('total').textContent=fmt(tot());document.getElementById('sess').textContent=S.run?live()+'s':''}
+function nav(){const n=document.getElementById('nav');n.innerHTML=[['timer','Timer'],['books','Buku'],['stats','Statistik'],['plan','Perencana']].map(([k,l])=>`<button class="${tab==k?'on':''}" onclick="tab='${k}';draw()">${l}</button>`).join('')}
+function draw(){nav();head();const v=document.getElementById('view');
+if(tab=='timer'){
+ v.innerHTML=S.subs.map(s=>edit?`<div class="row"><input type="color" value="${s.color}" onchange="S.subs.find(x=>x.id==${s.id}).color=this.value;save()"><input type="text" value="${esc(s.name)}" onchange="S.subs.find(x=>x.id==${s.id}).name=this.value;save()"><button class="x" onclick="del(${s.id})">×</button></div>`:
+ `<div class="row ${S.run&&S.run.id==s.id?'run':''}"><button class="play" style="background:${s.color}" onclick="toggle(${s.id})">${S.run&&S.run.id==s.id?PAUSE:PLAY}</button><div class="name">${esc(s.name)}</div><div class="t" data-id="${s.id}">${fmt(sec(s.id))}</div></div>`).join('')
+ +(edit?'<div class="add"><button class="btn" onclick="addSub()">+ Tambah mata pelajaran</button></div>':'')
+ +`<div class="add"><button class="btn" onclick="edit=!edit;draw()">${edit?'Selesai':'✎ Edit mata pelajaran'}</button></div>`;
+}else if(tab=='stats'){
+ const ds=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);ds.push(d)}
+ const mx=Math.max(3600,...ds.map(d=>tot(day(d))));
+ v.innerHTML='<h3>7 hari terakhir</h3><div class="bars">'+ds.map(d=>`<div class="bar" style="height:${Math.max(2,tot(day(d))/mx*100)}%">${S.subs.map(s=>{const x=sec(s.id,day(d));return x?`<div style="background:${s.color};height:${x/tot(day(d))*100}%"></div>`:''}).join('')}</div>`).join('')+'</div><div class="lbls">'+ds.map(d=>`<div>${['M','S','S','R','K','J','S'][d.getDay()]}<br>${fmt(tot(day(d))).slice(0,-3)}</div>`).join('')+'</div><h3>Total 7 hari per pelajaran</h3>'
+ +S.subs.map(s=>`<div class="row"><span class="play" style="background:${s.color};width:14px;height:14px"></span><div class="name">${esc(s.name)}</div><div class="t">${fmt(ds.reduce((a,d)=>a+sec(s.id,day(d)),0))}</div></div>`).join('');
+}else{
+ const k=tab=='books'?'books':'tasks',ph=k=='books'?'Judul buku':'Tugas baru';
+ v.innerHTML=`<div class="add"><input type="text" id="ni" placeholder="${ph}"><button class="btn" onclick="addItem('${k}')">Tambah</button></div>`+S[k].map(b=>`<div class="row"><input class="chk" type="checkbox" ${b.done?'checked':''} onchange="S['${k}'].find(x=>x.id==${b.id}).done=this.checked;save();draw()"><div class="name ${b.done?'done':''}">${esc(b.text)}</div><button class="x" onclick="S['${k}']=S['${k}'].filter(x=>x.id!=${b.id});save();draw()">×</button></div>`).join('');
+}}
+function addItem(k){const i=document.getElementById('ni'),t=i.value.trim();if(!t)return;S[k].push({id:S.nid++,text:t,done:false});save();draw()}
+function addSub(){S.subs.push({id:S.nid++,name:'Pelajaran baru',color:COLORS[S.subs.length%5]});save();draw()}
+function del(id){if(S.run&&S.run.id==id)stop();S.subs=S.subs.filter(s=>s.id!=id);save();draw()}
+setInterval(()=>{head();if(tab=='timer'&&!edit)document.querySelectorAll('.t[data-id]').forEach(e=>e.textContent=fmt(sec(+e.dataset.id)))},500);
+draw();
+</script></body></html>

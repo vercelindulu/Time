@@ -1,0 +1,30 @@
+LANGKAH BUILD APK (Windows/Mac/Linux)
+
+Persiapan (sekali saja):
+1. Install Node.js LTS  -> https://nodejs.org
+2. Install Android Studio -> https://developer.android.com/studio
+   (buka sekali, biarkan SDK terunduh)
+
+Build:
+1. Ekstrak folder ini, buka terminal di dalam folder.
+2. npm install
+3. npx cap add android
+4. npx cap sync android
+5. npx cap open android   (Android Studio terbuka, tunggu Gradle selesai)
+6. Di Android Studio: Build > Build Bundle(s) / APK(s) > Build APK(s)
+7. Klik "locate" -> file: android/app/build/outputs/apk/debug/app-debug.apk
+8. Kirim APK ke HP, buka, izinkan "install dari sumber tidak dikenal".
+
+Atau langsung ke HP lewat kabel USB (USB debugging aktif):
+   npx cap run android
+
+Edit tampilan: ubah www/index.html, lalu jalankan: npx cap sync android
+
+=== BUILD LEWAT GITHUB (tanpa Android Studio) ===
+1. Buat akun di github.com, buat repository baru (New repository).
+2. Upload SEMUA isi folder ini (termasuk folder .github) lewat "Add file > Upload files".
+   Catatan: folder .github tersembunyi di sebagian PC; aktifkan "tampilkan file tersembunyi".
+3. Buka tab Actions > "Build APK" > Run workflow (atau otomatis jalan setelah upload).
+4. Tunggu +-5 menit sampai centang hijau, klik run tersebut.
+5. Di bagian Artifacts, unduh "study-timer-apk" (zip), ekstrak -> app-debug.apk.
+6. Kirim ke HP dan install.
